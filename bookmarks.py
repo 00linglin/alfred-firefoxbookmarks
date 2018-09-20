@@ -4,6 +4,7 @@ import os
 import re
 import sqlite3
 import time
+from shutil import copyfile
 
 import alfred
 
@@ -17,7 +18,7 @@ def combine(operator, iterable):
 def icon(favicons_db, url_hash):
     if not url_hash:
         return
-    
+
     result = favicons_db.execute(u"""\
 select moz_icons.id, moz_icons.data from moz_icons
 inner join moz_icons_to_pages on moz_icons.id = moz_icons_to_pages.icon_id
@@ -86,6 +87,13 @@ def where(query, fields):
     return combine(u'or', ('%s regexp "%s"' % (field, '.*%s' % '.*'.join(re.escape(c) for c in query.split(' '))) for field in fields))
 
 (profile, query) = alfred.args()
-places_db = sqlite3.connect(places(profile))
-favicons_db = sqlite3.connect(favicons(profile))
+places_file = places(profile)
+favicons_file = favicons(profile)
+places_file_copy = places_file + '.copy'
+favicons_file_copy = favicons_file + '.copy'
+
+copyfile(places_file, places_file_copy)
+copyfile(favicons_file, favicons_file_copy)
+places_db = sqlite3.connect(places_file_copy)
+favicons_db = sqlite3.connect(favicons_file_copy)
 alfred.write(alfred.xml(results(places_db, favicons_db, query), maxresults=_MAX_RESULTS))
